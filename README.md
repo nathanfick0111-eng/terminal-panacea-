@@ -3,168 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PANACEA INDUSTRIES™ // TERMINAL CENTRAL DE ARQUIVOS</title>
+    <title>PANACEA INDUSTRIES™ // TERMINAL CENTRAL</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            background-color: #030a03;
-            color: #00ff66;
+            background: #030a03; color: #00ff66;
             font-family: 'Share Tech Mono', monospace;
-            height: 100vh;
-            overflow: hidden;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
+            height: 100vh; padding: 20px;
+            display: flex; flex-direction: column;
             text-shadow: 0 0 5px rgba(0, 255, 102, 0.4);
+            overflow: hidden;
         }
 
-        /* Efeito de linhas de CRT (Scanlines) */
+        /* Efeito Scanlines CRT */
         body::before {
-            content: " ";
-            display: block;
-            position: fixed;
+            content: " "; display: block; position: fixed;
             top: 0; left: 0; bottom: 0; right: 0;
             background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            z-index: 99999;
-            background-size: 100% 4px, 6px 100%;
-            pointer-events: none;
+            z-index: 99; background-size: 100% 4px, 6px 100%; pointer-events: none;
         }
 
         #terminal {
-            flex: 1;
-            overflow-y: auto;
-            margin-bottom: 10px;
-            padding-right: 10px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            line-height: 1.1; /* Linhas mais apertadas para ASCII art */
+            flex: 1; overflow-y: auto; white-space: pre-wrap; line-height: 1.2;
         }
-
-        #terminal::-webkit-scrollbar {
-            width: 6px;
-        }
-        #terminal::-webkit-scrollbar-thumb {
-            background: #00ff66;
-        }
+        #terminal::-webkit-scrollbar { width: 4px; }
+        #terminal::-webkit-scrollbar-thumb { background: #00ff66; }
 
         .input-line {
-            display: flex;
-            align-items: center;
-            border-top: 1px dashed #00ff66;
-            padding-top: 10px;
-            margin-top: auto;
+            display: flex; border-top: 1px dashed #00ff66; padding-top: 10px; margin-top: 10px;
         }
-
-        .prompt {
-            margin-right: 10px;
-            font-weight: bold;
-        }
-
+        .prompt { margin-right: 10px; font-weight: bold; }
         input {
-            background: transparent;
-            border: none;
-            color: #00ff66;
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 1rem;
-            outline: none;
-            flex: 1;
-            text-shadow: 0 0 5px rgba(0, 255, 102, 0.4);
+            background: transparent; border: none; color: #00ff66;
+            font-family: inherit; font-size: 1rem; outline: none; flex: 1;
         }
-
-        .system-msg {
-            color: #ffb700;
-        }
-
-        .error-msg {
-            color: #ff3333;
-        }
-
-        .banner {
-            color: #00ff66;
-            margin-bottom: 15px;
-            line-height: 1.4;
-        }
+        .warn { color: #ffb700; }
+        .danger { color: #ff3333; }
     </style>
 </head>
 <body>
 
     <div id="terminal">
-        <div class="banner">
-PANACEA INDUSTRIES™ — SISTEMA OPERACIONAL CENTRAL [VERSÃO 4.12.0]
-ACESSO RESTRITO — CONSELHO DOS ONZE
-Estado de Segurança: <span class="error-msg">BLOQUEADO (Autenticação Necessária)</span>
-Digite <span style="color: #ffb700;">'login'</span> para introduzir a credencial de acesso aos documentos.
-Digite <span style="color: #ffb700;">'ajuda'</span> para ver os comandos gerais.
-        </div>
+PANACEA INDUSTRIES™ — SISTEMA OPERACIONAL CENTRAL [v4.12]
+Estado de Segurança: <span class="danger">BLOQUEADO (Requer Autenticação)</span>
+Digite <span class="warn">'login'</span> para introduzir a credencial de acesso.
+Digite <span class="warn">'ajuda'</span> para ver os comandos gerais.
     </div>
 
     <div class="input-line">
         <span class="prompt" id="prompt-symbol">nrcr@panacea:~#</span>
-        <input type="text" id="command-input" autofocus autocomplete="off" spellcheck="false">
+        <input type="text" id="cmd-input" autofocus autocomplete="off" spellcheck="false">
     </div>
 
     <script>
         const terminal = document.getElementById('terminal');
-        const input = document.getElementById('command-input');
+        const input = document.getElementById('cmd-input');
         const promptSymbol = document.getElementById('prompt-symbol');
 
-        let isAuthenticated = false;
-        let waitingForPassword = false;
+        let isAuth = false;
+        let isWritingPassword = false;
+        const PASS = "N3URO1MPLANT3S";
 
-        // SENHA DE ACESSO ATUALIZADA (Cibernética)
-        const SECURE_PASSWORD = "N3URO1MPLANT3S";
+        const docs = {
+            nrcr: `[REGISTRO NRCR-ENG-001] — IMPLANTES CIBERNÉTICOS
+---------------------------------------------------
+EXP 001 [NEURAL LINK]: Sobrecarga neurológica e alucinações.
+EXP 002 [SANDEVITÃO-VITTAR]: Espasmos e rotura de fibras musculares.
+EXP 003 [SENSOR PARIS]: Superaquecimento ocular e perda de equilíbrio.
+EXP 004 [GARRA ELU]: Descargas descontroladas e derretimento de componentes.
+EXP 005 [INJETOR VALDÉS]: Queimaduras internas generalizadas.
+EXP 006 [NÚCLEO CARDÍACO]: Deterioração progressiva dos tecidos.
+EXP 007 [FIBRA MONOFIO]: Descontrolo total dos filamentos nos pulsos.
 
-        const databases = {
-            // Documentos confidenciais
-            nrcr: `PANACEA INDUSTRIES™
-COMPLEXO N.R.C.R. — ARQUIVO HISTÓRICO DE PESQUISA E DESENVOLVIMENTO
-Registro: NRCR-ENG-001 | Período: 2003–2019 | Classificação: Confidencial
-Responsável técnico: Dr. Sebastián Ugarte
+PARECER DO DR. UGARTE: "Construímos máquinas capazes de superar o corpo, mas não um corpo capaz de as suportar."`,
 
-1. CONTEXTUALIZAÇÃO
-Os primeiros projetos de implantes cibernéticos visavam substituir funções orgânicas e ampliar capacidades físicas. O problema recorrente foi a incapacidade do organismo de suportar a quantidade de Energia conduzida.
+            sume: `[SUMÉ-COM-017] — TRANSCRIÇÃO DE EMERGÊNCIA
+--------------------------------------------
+S. Verdante: Torres de rádio em MG a transmitir sinais anómalos.
+Laila Verdante: Pesquisadores em estado hipnótico, atraídos pelos símbolos nas telas.
+STATUS: Instalação sob isolamento estrito.`,
 
-2. REGISTROS EXPERIMENTAIS:
-- EXP 001 [CO-PROCESSADOR NEURAL]: Sobrecarga neurológica e alucinações auditivas.
-- EXP 002 [ATIVADOR CINÉTICO SANDEVITÃO-VITTAR]: Espasmos violentos e rompimento muscular.
-- EXP 003 [SENSOR ÓPTICO PARIS]: Superaquecimento e sobrecarga sensorial.
-- EXP 004 [GARRA ELU]: Descarga descontrolada e derretimento de componentes.
-- EXP 005 [INJETOR SUBDÉRMICO VALDÉS]: Queimaduras internas e perda de controle muscular.
-- EXP 006 [NÚCLEO CARDÍACO BIOMECÂNICO]: Deterioração progressiva dos tecidos.
-- EXP 007 [TECIDO DE FIBRA MONOFIO]: Ruptura interna e superaquecimento nos pulsos.
+            atlas: `[PAN-GEO-001] — ATLAS GLOBAL DE INSTALAÇÕES
+--------------------------------------------
+1. SUMÉ (Brasil) - Mutações na ecologia amazónica.
+2. MAXIMÓN (México) - Interferências digitais anómalas.
+3. WOHPE (EUA) - Agentes biológicos experimentais.
+4. DURGĀ (Índia) - Sintetização farmacológica.
+5. HYGIEIA (Sede Oculta) - Contenção de entidades anômalas.
+6 & 7. GLACIUS / IGNEUS (Groenlândia) - Estudo do agente I-413 (Infecticídio).`,
 
-PARECER DO DR. SEBASTIÁN UGARTE:
-"Construímos máquinas capazes de superar as limitações do corpo humano, mas ainda não conseguimos construir um corpo capaz de suportar nossas máquinas."`,
+            status: `RELATÓRIO DE ESTADO: <span class="danger">AGENTE I-413 (Infecticídio) — ATIVO</span>
 
-            sume: `PANACEA INDUSTRIES™ — ESTAÇÃO SUMÉ
-TRANSCRIÇÃO DE COMUNICAÇÃO INTERNA (SUMÉ-COM-017)
-Participantes: S. Verdante, Dr. Vladimir Zurita, Laila Verdante.
-
-S. VERDANTE: Recebemos um relatório preocupante de torres de rádio e uma emissora em Minas Gerais emitindo transmissões simultâneas com símbolos desconhecidos.
-LAILA VERDANTE: Os pesquisadores locais demonstram comportamento compulsivo e estado de hipnose, recusando-se a desviar o olhar das telas durante horas.
-STATUS: Investigação presencial suspensa. Instalação sob isolamento.`,
-
-            atlas: `PANACEA INDUSTRIES™ — REGISTRO GLOBAL DE INSTALAÇÕES (PAN-GEO-001)
-1. SUMÉ (Amazonas, Brasil) - Foco em mutações da fauna e flora.
-2. MAXIMÓN (Durango, México) - Estudo de interferências digitais anômalas.
-3. WOHPE (Alabama, EUA) - Agentes biológicos experimentais.
-4. DURGĀ (Calcutá, Índia) - Sintetização farmacológica.
-5. HYGIEIA (Sede Principal / Ilha Oculta) - Contenção de entidades anômalas.
-6 & 7. GLACIUS & IGNEUS (Groenlândia) - Pesquisas sobre o agente infeccioso I-413 (Infecticídio) e Nidere.`,
-
-            // Comandos livres (incluindo a logo)
-            status: `PANACEA INDUSTRIES™ — RELATÓRIO DE ESTADO DE CONTENÇÃO
-
-ESTADO DO AGENTE: <span class="error-msg">I-413 (Infecticídio) — ATIVO</span>
-
-<span style="color: #ff3333;">         .
+<span class="danger">         .
        .iH.
       .HMMM.
      .HMMMMM.
@@ -178,105 +110,91 @@ ESTADO DO AGENTE: <span class="error-msg">I-413 (Infecticídio) — ATIVO</span>
       VMMMV 
        VNV 
         V</span>
-
-ALERTA: Protocolos Glacius e Igneus operacionais. Colisão Nidere-I413 em preparação.
-Monitoramento contínuo em Wohpe e Hygieia.
 Conhecimento, desenvolvimento e controle.`
         };
 
-        input.addEventListener('keydown', function(event) {
-            if (event.key === 'Enter') {
-                const val = input.value;
-                const cmd = val.trim().toLowerCase();
-
-                const userLine = document.createElement('div');
-                
-                if (waitingForPassword) {
-                    userLine.textContent = `auth@panacea:~# ********`;
-                } else {
-                    userLine.textContent = `nrcr@panacea:~# ${val}`;
-                }
-                terminal.appendChild(userLine);
-
-                const responseLine = document.createElement('div');
-
-                // 1. Processo de introdução de senha
-                if (waitingForPassword) {
-                    waitingForPassword = false;
-                    promptSymbol.textContent = "nrcr@panacea:~#";
-                    input.type = "text";
-
-                    if (val === SECURE_PASSWORD) {
-                        isAuthenticated = true;
-                        responseLine.className = 'system-msg';
-                        responseLine.textContent = 'AUTENTICAÇÃO BEM-SUCEDIDA. Acesso total aos arquivos concedido.';
-                    } else {
-                        responseLine.className = 'error-msg';
-                        responseLine.textContent = 'ACESSO NEGADO: Credencial incorreta.';
-                    }
-                    terminal.appendChild(responseLine);
-                    input.value = '';
-                    terminal.scrollTop = terminal.scrollHeight;
-                    return;
-                }
-
-                // 2. Comandos normais
-                if (cmd === '') {
-                    // vazio
-                } else if (cmd === 'login') {
-                    if (isAuthenticated) {
-                        responseLine.className = 'system-msg';
-                        responseLine.textContent = 'O terminal já se encontra autenticado.';
-                    } else {
-                        waitingForPassword = true;
-                        promptSymbol.textContent = "senha@panacea:~#";
-                        input.type = "password";
-                        responseLine.className = 'system-msg';
-                        responseLine.textContent = 'Introduza a credencial de acesso do Conselho:';
-                    }
-                } else if (cmd === 'ajuda') {
-                    responseLine.textContent = `COMANDOS DISPONÍVEIS:
- - ajuda          : Exibe esta lista de comandos
- - sobre          : Informações institucionais
- - login          : Autenticar para desbloquear documentos confidenciais
- - status         : Relatório de estado do agente Infecticídio [Logo]
- - nrcr           : Abre o Arquivo Histórico NRCR-ENG-001 [Requer Login]
- - sume           : Abre a Transcrição SUMÉ-COM-017 [Requer Login]
- - atlas          : Abre o Atlas Global PAN-GEO-001 [Requer Login]
- - limpar         : Limpa o ecrã do terminal
- - sair           : Encerra a sessão atual`;
-                } else if (cmd === 'sobre') {
-                    responseLine.textContent = "PANACEA INDUSTRIES™\nMissão: Conhecimento, desenvolvimento e controle de fronteiras biológicas e anômalas.";
-                } else if (cmd === 'limpar') {
-                    terminal.innerHTML = '';
-                    input.value = '';
-                    return;
-                } else if (cmd === 'sair') {
-                    responseLine.className = 'system-msg';
-                    responseLine.textContent = 'Sessão encerrada. Desligando terminal...';
-                    terminal.appendChild(responseLine);
-                    input.disabled = true;
-                    return;
-                } else if (databases[cmd]) {
-                    const secureCmds = ['nrcr', 'sume', 'atlas'];
-                    if (secureCmds.includes(cmd)) {
-                        if (isAuthenticated) {
-                            responseLine.innerHTML = databases[cmd];
-                        } else {
-                            responseLine.className = 'error-msg';
-                            responseLine.textContent = `ACESSO RESTRITO: O documento '${cmd}' requer autenticação prévia. Digite 'login' e insira a senha.`;
-                        }
-                    } else {
-                        responseLine.innerHTML = databases[cmd];
-                    }
-                } else {
-                    responseLine.className = 'error-msg';
-                    responseLine.textContent = `Comando não reconhecido: "${val}". Digite 'ajuda' para ver os comandos válidos.`;
-                }
-
-                terminal.appendChild(responseLine);
-                input.value = '';
+        // Função dinâmica para efeito de digitação rápida
+        function printText(text, isHtml = false, speed = 4) {
+            const line = document.createElement('div');
+            terminal.appendChild(line);
+            
+            if (isHtml) {
+                line.innerHTML = text;
                 terminal.scrollTop = terminal.scrollHeight;
+                return;
+            }
+
+            let i = 0;
+            input.disabled = true;
+            const timer = setInterval(() => {
+                line.textContent += text.charAt(i);
+                i++;
+                terminal.scrollTop = terminal.scrollHeight;
+                if (i >= text.length) {
+                    clearInterval(timer);
+                    input.disabled = false;
+                    input.focus();
+                }
+            }, speed);
+        }
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter') return;
+            const val = input.value.trim();
+            const cmd = val.toLowerCase();
+            input.value = '';
+
+            // Registar comando no ecrã
+            printText(`${promptSymbol.textContent} ${isWritingPassword ? '********' : val}`, false, 0);
+
+            // Validação de Senha
+            if (isWritingPassword) {
+                isWritingPassword = false;
+                promptSymbol.textContent = "nrcr@panacea:~#";
+                input.type = "text";
+                if (val === PASS) {
+                    isAuth = true;
+                    printText('<span class="warn">AUTENTICAÇÃO ACEITE. Documentos desbloqueados.</span>', true);
+                } else {
+                    printText('<span class="danger">ACESSO NEGADO: Credencial incorreta.</span>', true);
+                }
+                return;
+            }
+
+            // Processamento de Comandos
+            if (!cmd) return;
+
+            if (cmd === 'login') {
+                if (isAuth) {
+                    printText('<span class="warn">Terminal já autenticado.</span>', true);
+                } else {
+                    isWritingPassword = true;
+                    promptSymbol.textContent = "senha@panacea:~#";
+                    input.type = "password";
+                    printText('<span class="warn">Introduza a senha do Conselho:</span>', true);
+                }
+            } else if (cmd === 'ajuda') {
+                printText(`COMANDOS:
+ - ajuda   : Lista de comandos
+ - login   : Autenticar terminal [Senha: N3URO1MPLANT3S]
+ - status  : Logo Panacea & Estado do Agente I-413
+ - nrcr    : Arquivo Histórico de Cibernética (Confidencial)
+ - sume    : Transcrição Estação Sumé (Confidencial)
+ - atlas   : Atlas de Instalações (Confidencial)
+ - limpar  : Limpar ecrã`, false, 2);
+            } else if (cmd === 'limpar') {
+                terminal.innerHTML = '';
+            } else if (cmd === 'sobre') {
+                printText("PANACEA INDUSTRIES™ — Conhecimento, desenvolvimento e controle.", false, 2);
+            } else if (docs[cmd]) {
+                const confidenciais = ['nrcr', 'sume', 'atlas'];
+                if (confidenciais.includes(cmd) && !isAuth) {
+                    printText(`<span class="danger">ACESSO RESTRITO. Digite 'login' e use a senha.</span>`, true);
+                } else {
+                    printText(docs[cmd], cmd === 'status', 2);
+                }
+            } else {
+                printText(`<span class="danger">Comando não reconhecido: "${val}". Digite 'ajuda'.</span>`, true);
             }
         });
     </script>
